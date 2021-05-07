@@ -2,9 +2,68 @@ import pandas as pd
 import pytz
 from progress.spinner import Spinner
 
-# xls = pd.ExcelFile('teste.xls')
-# df1 = pd.read_excel(xls, header=[1], 
-#                     sheet_name='TDI NORTE')
+REDE_ENSINO = {
+    "Municipal": 1,
+    "Estadual": 2,
+    "Federal": 3,
+    "Privada": 4,
+    "Pública": 5
+}
+
+LOCALIDADE_ENSINO = {
+    "Rural": 1,
+    "Urbana": 2
+}
+
+MUNICIPIOS = {
+  'Acrelândia': 3,
+  'Assis Brasil': 4,
+  'Brasiléia': 5,
+  'Bujari': 6,
+  'Capixaba': 7,
+  'Cruzeiro do Sul':8,
+  'Epitaciolândia':9,
+ 'Feijó':10,
+ 'Jordão': 11,
+ 'Mâncio Lima': 12,
+ 'Manoel Urbano': 13,
+ 'Marechal Thaumaturgo': 14,
+ 'Plácido de Castro': 15,
+ 'Porto Acre': 16,
+ 'Porto Walter': 17,
+ 'Rio Branco': 18,
+ 'Rodrigues Alves': 19,
+ 'Santa Rosa do Purus': 20,
+ 'Sena Madureira': 21,
+ 'Senador Guiomard': 22,
+ 'Tarauacá': 23,
+ 'Xapuri': 24
+}
+
+MUNICIPIOS_COD_IBGE = {
+  1200013: 3,
+  1200054: 4,
+  1200104: 5,
+  1200138: 6,
+  1200179: 7,
+  1200203: 8,
+  1200252: 9,
+  1200302: 10,
+  1200328: 11,
+  1200336: 12,
+  1200344: 13,
+  1200351: 14,
+  1200385: 15,
+  1200807: 16,
+  1200393: 17,
+  1200401: 18,
+  1200427: 19,
+  1200435: 20,
+  1200500: 21,
+  1200450: 22,
+  1200609: 23,
+  1200708: 24
+}
 
 
 def getFkId(cursor, cod_mun, rede, localidade):
@@ -49,27 +108,25 @@ def spin(x):
     spinner.next()
     return True
 
-
+#Definir o arquivo que será lido
 xls = pd.ExcelFile('AFD_MUNICIPIOS_2015.ods')
 df = pd.read_excel(xls, header=[0], 
-                    sheet_name='Ind__adeq__form__doc_', usecols=spin)
+                    sheet_name='Ind__adeq__form__doc_')
 
+# Definir tabela a qual serão gerados os inserts
+current_table = 'AFD_MUNICIPIOS_2015'
 
-# doc_columns = ['Ano', 'UF', 'Município', 'Código do Município', 'Localização', 'Rede', '1ª a 4ª Série/1º ao 5º Ano'
-#  ,'5ª a 8ª Série/6º ao 9º Ano', 'Total Fundamental', ' 1ª Série', ' 2ª Série',
-#  ' 3ª Série', ' 4ª Série', 'Total Médio']
-
+# Definir as colunas do documento lido que serão associadas a cada coluna da tabela do banco
 doc_columns = ['Ano', 'Sigla', 'Código do Município', 'Nome do Município',
  'Localização', 'Dependência Administrativa', 'Grupo 1 EI', 'Grupo 2 EI',
  'Grupo 3 EI', 'Grupo 4 EI', 'Grupo 5 EI']
 
-
-current_table = 'AFD_MUNICIPIOS_2015'
-
+# Definir os nomes das colunas da tabela do banco de dados
 db_columns = ['ANO', 'UF', 'COD_MUN', 'COD_MUNICIPIO','MUNICIPIO', 'LOCALIDADE', 'REDE', 'G1_E1', 'G1_2','G1_3','G1_4','G1_5']
 
 
-# df_acre = df1[df1['UF'] == 'AC']
+# Definir a coluna do documento que representa o estado da federação
+# Filtrar pelo estado do Acre
 df_acre = df[df['Sigla'] == 'AC']
 
 insert_string = 'INSERT INTO ' + current_table
