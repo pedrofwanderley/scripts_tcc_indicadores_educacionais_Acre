@@ -18,28 +18,28 @@ LOCALIDADE_ENSINO = {
 }
 
 MUNICIPIOS = {
-  'Acrelândia': 3,
-  'Assis Brasil': 4,
-  'Brasiléia': 5,
-  'Bujari': 6,
-  'Capixaba': 7,
-  'Cruzeiro do Sul':8,
-  'Epitaciolândia':9,
- 'Feijó':10,
- 'Jordão': 11,
- 'Mâncio Lima': 12,
- 'Manoel Urbano': 13,
- 'Marechal Thaumaturgo': 14,
- 'Plácido de Castro': 15,
- 'Porto Acre': 16,
- 'Porto Walter': 17,
- 'Rio Branco': 18,
- 'Rodrigues Alves': 19,
- 'Santa Rosa do Purus': 20,
- 'Sena Madureira': 21,
- 'Senador Guiomard': 22,
- 'Tarauacá': 23,
- 'Xapuri': 24
+    'Acrelândia': 3,
+    'Assis Brasil': 4,
+    'Brasiléia': 5,
+    'Bujari': 6,
+    'Capixaba': 7,
+    'Cruzeiro do Sul':8,
+    'Epitaciolândia':9,
+    'Feijó':10,
+    'Jordão': 11,
+    'Mâncio Lima': 12,
+    'Manoel Urbano': 13,
+    'Marechal Thaumaturgo': 14,
+    'Plácido de Castro': 15,
+    'Porto Acre': 16,
+    'Porto Walter': 17,
+    'Rio Branco': 18,
+    'Rodrigues Alves': 19,
+    'Santa Rosa do Purus': 20,
+    'Sena Madureira': 21,
+    'Senador Guiomard': 22,
+    'Tarauacá': 23,
+    'Xapuri': 24
 }
 
 MUNICIPIOS_COD_IBGE = {
@@ -67,43 +67,6 @@ MUNICIPIOS_COD_IBGE = {
   1200708: 24
 }
 
-
-#def getFkId(cursor, cod_mun, rede, localidade):
-#    result = []
-#    id_mun = "select ID from MUNICIPIO where CODIGO=" + str(cod_mun)
-#    cursor.execute(id_mun)
-#    record_mun = cursor.fetchone()
-#    if (record_mun and record_mun[0]): result.append(record_mun[0])
-#    id_rede = "select ID from REDE_ENSINO where SUB_REDE='" + rede + "'"
-#    cursor.execute(id_rede)
-#    record_rede = cursor.fetchone()
-#    if (record_rede and record_rede[0]): result.append(record_rede[0])
-#    id_loc = "select ID from LOCALIDADE_ENSINO where LOCALIDADE='" + localidade + "'"
-#    cursor.execute(id_loc)
-#    record_loc = cursor.fetchone()
-#    if (record_loc and record_loc[0]): result.append(record_loc[0])
-#
-#    return result
-#
-#def getFkMun(cursor, cod_mun):
-#    result = []
-#    id_mun = "select ID from MUNICIPIO where CODIGO=" + str(cod_mun)
-#    cursor.execute(id_mun)
-#    record_mun = cursor.fetchone()
-#    if (record_mun and record_mun[0]): result.append(record_mun[0])
-#
-#    return result
-#
-#def getFkMunNomeUf(cursor, nome, uf):
-#    result = []
-#    id_mun = "select ID from MUNICIPIO where UF= '" + uf + "' AND NOME = '"+nome+"' COLLATE SQL_Latin1_General_CP1_CI_AI"
-#    cursor.execute(id_mun)
-#    record_mun = cursor.fetchone()
-#    if (record_mun and record_mun[0]): result.append(record_mun[0])
-#
-#    return result
-
-
 spinner = Spinner('Lendo planilhas...')
 
 def spin(x):
@@ -111,7 +74,7 @@ def spin(x):
     return True
 
 #Definir o arquivo que será lido
-df = pd.read_csv('AFD_MUNICIPIOS_2019.csv', sep=";", usecols=spin)
+df = pd.read_csv('AFD_MUNICIPIOS_2019.csv', sep=";", low_memory=False,  usecols=spin)
 
 # Definir tabela a qual serão gerados os inserts
 current_table = 'AFD_MUNICIPIOS_2019'
@@ -123,14 +86,17 @@ doc_columns = ['Ano','Sigla','Código do Município','Nome do Município'
 
 
 # Definir os nomes das colunas da tabela do banco de dados (definir também os ids das chaves estrangeiras)
-db_columns = ['ANO', 'UF', 'COD_MUN','MUNICIPIO', 'LOCALIDADE', 'REDE', 'G1_E1', 'G1_2','G1_3','G1_4','G1_5', 'MUNICIPIO_ID', 'REDE_ID', 'LOCALIDADE_ID']
+db_columns = ['ANO', 'G1_E1', 'G1_2','G1_3','G1_4','G1_5', 'MUNICIPIO_ID', 'REDE_ID', 'LOCALIDADE_ID']
+
+# Definir as colunas que não serão utilizadas no insert mas são necessárias para o processamento 
+unused_cols = ['Sigla','Código do Município','Nome do Município','Localização','Dependência Administrativa']
 
 
 # Definir a coluna do documento que representa o estado da federação
 # Filtrar pelo estado do Acre
 df_acre = df[(df['Sigla'] == 'AC') & (df['Dependência Administrativa'] != 'Total') & (df['Localização'] != 'Total')]
 
-insert_string = 'INSERT INTO ' + current_table
+insert_table = 'INSERT INTO ' + current_table
 
 for col in df_acre.columns.values:
     df_acre[col] = df_acre[col].replace(['--'], 'NULL')
@@ -146,6 +112,7 @@ df_size = len(df_acre)
 
 insert_values = ''
 count = 1
+
 for index, row in df_acre.iterrows():
     
     insert_values += '('
@@ -166,17 +133,19 @@ for index, row in df_acre.iterrows():
         if (d == 'Localização') :
            localidade_id = LOCALIDADE_ENSINO[row[d]]
            fks.append(localidade_id)
-        if doc_columns.index(d) != len(doc_columns) -1:
+        
+        if(d not in unused_cols):
+            if doc_columns.index(d) != len(doc_columns) -1:
 
-            if(str(row[d]) == 'NULL'):
-                insert_values += str(row[d]) + ", "
+                if(str(row[d]) == 'NULL'):
+                    insert_values += str(row[d]) + ", "
+                else:
+                    insert_values += f"\'{str(row[d]).replace(',','.')}\'" + ", "
             else:
-                insert_values += f"\'{str(row[d])}\'" + ", "
-        else:
-            if(str(row[d]) == 'NULL'):
-                insert_values += str(row[d])
-            else:
-                insert_values += f"\'{str(row[d])}\'"
+                if(str(row[d]) == 'NULL'):
+                    insert_values += str(row[d])
+                else:
+                    insert_values += f"\'{str(row[d]).replace(',','.')}\'"
     for fk in fks:
         insert_values += ", " + str(fk)
 
@@ -186,10 +155,12 @@ for index, row in df_acre.iterrows():
         insert_values += ')'
     count += 1
  
-output = insert_string + into_columns + insert_values
+output = insert_table + into_columns + insert_values
 
 text_file = open("INSERTS_" + current_table + ".sql", "w")
 text_file.write(output)
 text_file.close()
+
+spinner.finish()
 
 

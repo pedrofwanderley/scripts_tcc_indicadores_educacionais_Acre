@@ -18,8 +18,9 @@ Neste repositório estão disponíveis os scripts utilizados no processo de ETL 
 
 ### Passo 3:
 
-- Altere o arquivo que será lido para o CSV desejado
+- Agora no arquivo `script.py`, altere o arquivo que será lido para o CSV desejado
 - Altere a variável `current_table` e coloque o nome da tabela que serão gerados os inserts
-- Agora no arquivo script.py pegue as colunas selecionadas no arquvivo `COLUMNS_` + <NOME ARQUIVO INSERIDO> e adicione no array `doc_columns`
-- Altere o array `db_columns` e insira as colunas da tabela a ser manipulada (Lembre de colocar as FK caso necessário)
-- Altere of filtros do df_acre, deve-se utilizar a coluna do csv que indique o estado vinculado ao dado. ex: `df_acre = df[(df['Sigla'] == 'AC') & (df['Dependência Administrativa'] != 'Total') & (df['Localização'] != 'Total')]`
+- Pegue as colunas selecionadas no arquvivo `COLUMNS_` + <NOME ARQUIVO INSERIDO> e adicione no array `doc_columns` (apenas as que serão utilizadas no insert)
+- Altere o array `unused_columns` e adicione as colunas do documento que não devem estar no insert, mas são utilizadas para o processamento (codigo do municipio, rede, localidade, ...)
+- Altere o array `db_columns` e insira as colunas da tabela a ser manipulada (Importante: Neste ponto a ordem das colunas deve ser as mesmas das colunas definidas no array `doc_columns`) (Lembre de colocar as FK no final do array caso necessário)
+- Altere of filtros do `df_acre`, deve-se utilizar a coluna do csv que indique o estado vinculado ao dado. ex: `df_acre = df[(df['Sigla'] == 'AC') & (df['Dependência Administrativa'] != 'Total') & (df['Localização'] != 'Total')]`
