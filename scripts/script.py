@@ -2,6 +2,8 @@ import pandas as pd
 import pytz
 from progress.spinner import Spinner
 
+pd.options.mode.chained_assignment = None
+
 REDE_ENSINO = {
     "Municipal": 1,
     "Estadual": 2,
@@ -109,20 +111,19 @@ def spin(x):
     return True
 
 #Definir o arquivo que será lido
-xls = pd.ExcelFile('AFD_MUNICIPIOS_2015.ods')
-df = pd.read_excel(xls, header=[0], 
-                    sheet_name='Ind__adeq__form__doc_')
+df = pd.read_csv('AFD_MUNICIPIOS_2019.csv', sep=";", usecols=spin)
 
 # Definir tabela a qual serão gerados os inserts
-current_table = 'AFD_MUNICIPIOS_2015'
+current_table = 'AFD_MUNICIPIOS_2019'
 
 # Definir as colunas do documento lido que serão associadas a cada coluna da tabela do banco
-doc_columns = ['Ano', 'Sigla', 'Código do Município', 'Nome do Município',
- 'Localização', 'Dependência Administrativa', 'Grupo 1 EI', 'Grupo 2 EI',
- 'Grupo 3 EI', 'Grupo 4 EI', 'Grupo 5 EI']
+doc_columns = ['Ano','Sigla','Código do Município','Nome do Município'
+ ,'Localização','Dependência Administrativa','Grupo 1 EI','Grupo 2 EI'
+ ,'Grupo 3 EI','Grupo 4 EI','Grupo 5 EI']
+
 
 # Definir os nomes das colunas da tabela do banco de dados
-db_columns = ['ANO', 'UF', 'COD_MUN', 'COD_MUNICIPIO','MUNICIPIO', 'LOCALIDADE', 'REDE', 'G1_E1', 'G1_2','G1_3','G1_4','G1_5']
+db_columns = ['ANO', 'UF', 'COD_MUN','MUNICIPIO', 'LOCALIDADE', 'REDE', 'G1_E1', 'G1_2','G1_3','G1_4','G1_5']
 
 
 # Definir a coluna do documento que representa o estado da federação
@@ -150,18 +151,37 @@ for index, row in df_acre.iterrows():
     insert_values += '('
 
     for d in doc_columns:
+        rede_id = None
+        localidade_id = None
+        municipio_id = None
         if doc_columns.index(d) != len(doc_columns) -1:
+            #Modificar linha caso insert precise de um Foreign Key de Município 
+            #if (d == 'Código do Município') :
+            #    municipio_id = MUNICIPIOS_COD_IBGE[row[d]]
+            #Modificar linha caso insert precise de um Foreign Key de Rede de Ensino
+            #if (d == 'Rede Ensino') :
+            #    rede_id = REDE_ENSINO[row[d]]
+            #Modificar linha caso insert precise de um Foreign Key de Localidade de Ensino
+            #if (d == 'Localidade Ensino') :
+            #   localidade_id = LOCALIDADE_ENSINO[row[d]]
+
             if(str(row[d]) == 'NULL'):
                 insert_values += str(row[d]) + ", "
             else:
                 insert_values += f"\'{str(row[d])}\'" + ", "
         else:
             if(str(row[d]) == 'NULL'):
-                insert_values += str(row[d]) + ", "
+                insert_values += str(row[d])
             else:
                 insert_values += f"\'{str(row[d])}\'"
 
     if (count < df_size):
+        #if(municipio_id is not None) :
+        #    insert_values += str(municipio_id)
+        #if(rede_id is not None) :
+        #    insert_values += str(rede_id)
+        #if(localidade_id is not None) :
+        #    insert_values += str(localidade_id)
         insert_values += '), ' + '\n'
     else:
         insert_values += ')'
