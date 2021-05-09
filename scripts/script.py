@@ -68,40 +68,40 @@ MUNICIPIOS_COD_IBGE = {
 }
 
 
-def getFkId(cursor, cod_mun, rede, localidade):
-    result = []
-    id_mun = "select ID from MUNICIPIO where CODIGO=" + str(cod_mun)
-    cursor.execute(id_mun)
-    record_mun = cursor.fetchone()
-    if (record_mun and record_mun[0]): result.append(record_mun[0])
-    id_rede = "select ID from REDE_ENSINO where SUB_REDE='" + rede + "'"
-    cursor.execute(id_rede)
-    record_rede = cursor.fetchone()
-    if (record_rede and record_rede[0]): result.append(record_rede[0])
-    id_loc = "select ID from LOCALIDADE_ENSINO where LOCALIDADE='" + localidade + "'"
-    cursor.execute(id_loc)
-    record_loc = cursor.fetchone()
-    if (record_loc and record_loc[0]): result.append(record_loc[0])
-
-    return result
-
-def getFkMun(cursor, cod_mun):
-    result = []
-    id_mun = "select ID from MUNICIPIO where CODIGO=" + str(cod_mun)
-    cursor.execute(id_mun)
-    record_mun = cursor.fetchone()
-    if (record_mun and record_mun[0]): result.append(record_mun[0])
-
-    return result
-
-def getFkMunNomeUf(cursor, nome, uf):
-    result = []
-    id_mun = "select ID from MUNICIPIO where UF= '" + uf + "' AND NOME = '"+nome+"' COLLATE SQL_Latin1_General_CP1_CI_AI"
-    cursor.execute(id_mun)
-    record_mun = cursor.fetchone()
-    if (record_mun and record_mun[0]): result.append(record_mun[0])
-
-    return result
+#def getFkId(cursor, cod_mun, rede, localidade):
+#    result = []
+#    id_mun = "select ID from MUNICIPIO where CODIGO=" + str(cod_mun)
+#    cursor.execute(id_mun)
+#    record_mun = cursor.fetchone()
+#    if (record_mun and record_mun[0]): result.append(record_mun[0])
+#    id_rede = "select ID from REDE_ENSINO where SUB_REDE='" + rede + "'"
+#    cursor.execute(id_rede)
+#    record_rede = cursor.fetchone()
+#    if (record_rede and record_rede[0]): result.append(record_rede[0])
+#    id_loc = "select ID from LOCALIDADE_ENSINO where LOCALIDADE='" + localidade + "'"
+#    cursor.execute(id_loc)
+#    record_loc = cursor.fetchone()
+#    if (record_loc and record_loc[0]): result.append(record_loc[0])
+#
+#    return result
+#
+#def getFkMun(cursor, cod_mun):
+#    result = []
+#    id_mun = "select ID from MUNICIPIO where CODIGO=" + str(cod_mun)
+#    cursor.execute(id_mun)
+#    record_mun = cursor.fetchone()
+#    if (record_mun and record_mun[0]): result.append(record_mun[0])
+#
+#    return result
+#
+#def getFkMunNomeUf(cursor, nome, uf):
+#    result = []
+#    id_mun = "select ID from MUNICIPIO where UF= '" + uf + "' AND NOME = '"+nome+"' COLLATE SQL_Latin1_General_CP1_CI_AI"
+#    cursor.execute(id_mun)
+#    record_mun = cursor.fetchone()
+#    if (record_mun and record_mun[0]): result.append(record_mun[0])
+#
+#    return result
 
 
 spinner = Spinner('Lendo planilhas...')
@@ -122,13 +122,13 @@ doc_columns = ['Ano','Sigla','Código do Município','Nome do Município'
  ,'Grupo 3 EI','Grupo 4 EI','Grupo 5 EI']
 
 
-# Definir os nomes das colunas da tabela do banco de dados
-db_columns = ['ANO', 'UF', 'COD_MUN','MUNICIPIO', 'LOCALIDADE', 'REDE', 'G1_E1', 'G1_2','G1_3','G1_4','G1_5']
+# Definir os nomes das colunas da tabela do banco de dados (definir também os ids das chaves estrangeiras)
+db_columns = ['ANO', 'UF', 'COD_MUN','MUNICIPIO', 'LOCALIDADE', 'REDE', 'G1_E1', 'G1_2','G1_3','G1_4','G1_5', 'MUNICIPIO_ID', 'REDE_ID', 'LOCALIDADE_ID']
 
 
 # Definir a coluna do documento que representa o estado da federação
 # Filtrar pelo estado do Acre
-df_acre = df[df['Sigla'] == 'AC']
+df_acre = df[(df['Sigla'] == 'AC') & (df['Dependência Administrativa'] != 'Total') & (df['Localização'] != 'Total')]
 
 insert_string = 'INSERT INTO ' + current_table
 
@@ -149,21 +149,24 @@ count = 1
 for index, row in df_acre.iterrows():
     
     insert_values += '('
-
+    fks = []
     for d in doc_columns:
         rede_id = None
         localidade_id = None
         municipio_id = None
+        #Modificar linha caso insert precise de um Foreign Key de Município 
+        if (d == 'Código do Município') :
+            municipio_id = MUNICIPIOS_COD_IBGE[row[d]]
+            fks.append(municipio_id)
+        #Modificar linha caso insert precise de um Foreign Key de Rede de Ensino
+        if (d == 'Dependência Administrativa') :
+            rede_id = REDE_ENSINO[row[d]]
+            fks.append(rede_id)
+        #Modificar linha caso insert precise de um Foreign Key de Localidade de Ensino
+        if (d == 'Localização') :
+           localidade_id = LOCALIDADE_ENSINO[row[d]]
+           fks.append(localidade_id)
         if doc_columns.index(d) != len(doc_columns) -1:
-            #Modificar linha caso insert precise de um Foreign Key de Município 
-            #if (d == 'Código do Município') :
-            #    municipio_id = MUNICIPIOS_COD_IBGE[row[d]]
-            #Modificar linha caso insert precise de um Foreign Key de Rede de Ensino
-            #if (d == 'Rede Ensino') :
-            #    rede_id = REDE_ENSINO[row[d]]
-            #Modificar linha caso insert precise de um Foreign Key de Localidade de Ensino
-            #if (d == 'Localidade Ensino') :
-            #   localidade_id = LOCALIDADE_ENSINO[row[d]]
 
             if(str(row[d]) == 'NULL'):
                 insert_values += str(row[d]) + ", "
@@ -174,14 +177,10 @@ for index, row in df_acre.iterrows():
                 insert_values += str(row[d])
             else:
                 insert_values += f"\'{str(row[d])}\'"
+    for fk in fks:
+        insert_values += ", " + str(fk)
 
     if (count < df_size):
-        #if(municipio_id is not None) :
-        #    insert_values += str(municipio_id)
-        #if(rede_id is not None) :
-        #    insert_values += str(rede_id)
-        #if(localidade_id is not None) :
-        #    insert_values += str(localidade_id)
         insert_values += '), ' + '\n'
     else:
         insert_values += ')'
